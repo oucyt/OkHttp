@@ -49,6 +49,7 @@ public final class ConnectionPool {
      * Background threads are used to cleanup expired connections. There will be at most a single
      * thread running per connection pool. The thread pool executor permits the pool itself to be
      * garbage collected.
+     * 用于清理空闲连接
      */
     private static final Executor executor = new ThreadPoolExecutor(0 /* corePoolSize */,
             Integer.MAX_VALUE /* maximumPoolSize */, 60L /* keepAliveTime */, TimeUnit.SECONDS,
@@ -128,6 +129,7 @@ public final class ConnectionPool {
      * {@code route} is the resolved route for a connection.
      */
     void acquire(Address address, StreamAllocation streamAllocation, @Nullable Route route) {
+        // This method is designed to allow a program to assert that the current thread already holds a specified lock:
         assert (Thread.holdsLock(this));
         for (RealConnection connection : connections) {
             if (connection.isEligible(address, route)) {
@@ -221,7 +223,7 @@ public final class ConnectionPool {
             for (Iterator<RealConnection> i = connections.iterator(); i.hasNext(); ) {
                 RealConnection connection = i.next();
 
-                // If the connection is in use, keep searching.
+                // If the connection is in use, keep searching.如果连接仍在使用，继续搜索
                 if (pruneAndGetAllocationCount(connection, now) > 0) {
                     inUseConnectionCount++;
                     continue;

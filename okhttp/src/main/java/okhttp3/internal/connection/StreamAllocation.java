@@ -175,9 +175,12 @@ public final class StreamAllocation {
             // Attempt to use an already-allocated connection. We need to be careful here because our
             // already-allocated connection may have been restricted from creating new streams.
             releasedConnection = this.connection;
+
+            // 如果connection不允许新增stream,返回一个用于关闭的socket
             toClose = releaseIfNoNewStreams();
             if (this.connection != null) {
                 // We had an already-allocated connection and it's good.
+                // 如果当前StreamAllocation持有的连接不为空
                 result = this.connection;
                 releasedConnection = null;
             }
@@ -187,9 +190,10 @@ public final class StreamAllocation {
             }
 
             if (result == null) {
-                // Attempt to get a connection from the pool.
+                // Attempt to get a connection from the pool.说明当前分配流还未找到可用连接
                 Internal.instance.acquire(connectionPool, address, this, null);
                 if (connection != null) {
+                    // 找到可用连接
                     foundPooledConnection = true;
                     result = connection;
                 } else {
@@ -206,7 +210,7 @@ public final class StreamAllocation {
             eventListener.connectionAcquired(call, result);
         }
         if (result != null) {
-            // If we found an already-allocated or pooled connection, we're done.
+            // If we found an already-allocated or pooled connection, we're done.找到可用连接，直接返回
             return result;
         }
 
@@ -291,6 +295,7 @@ public final class StreamAllocation {
         assert (Thread.holdsLock(connectionPool));
         RealConnection allocatedConnection = this.connection;
         if (allocatedConnection != null && allocatedConnection.noNewStreams) {
+            // 如果connection不允许创建新stream,返回一个用于关闭的socket
             return deallocate(false, false, true);
         }
         return null;
@@ -407,7 +412,9 @@ public final class StreamAllocation {
             if (this.codec == null && (this.released || connection.noNewStreams)) {
                 release(connection);
                 if (connection.allocations.isEmpty()) {
+                    // 如果connection未分配流，标记闲置时间戳
                     connection.idleAtNanos = System.nanoTime();
+                    // 将connection标记为空闲连接
                     if (Internal.instance.connectionBecameIdle(connectionPool, connection)) {
                         socket = connection.socket();
                     }
@@ -490,7 +497,7 @@ public final class StreamAllocation {
     }
 
     /**
-     * Remove this allocation from the connection's list of allocations.
+     * Remove this allocation from the connection's list of allocations.从分配列表中移除此分配
      */
     private void release(RealConnection connection) {
         for (int i = 0, size = connection.allocations.size(); i < size; i++) {

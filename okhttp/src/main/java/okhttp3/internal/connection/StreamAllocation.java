@@ -117,6 +117,7 @@ public final class StreamAllocation {
 
             synchronized (connectionPool) {
                 codec = resultCodec;
+                // 返回流对象
                 return resultCodec;
             }
         } catch (IOException e) {
@@ -140,6 +141,7 @@ public final class StreamAllocation {
 
             // If this is a brand new connection, we can skip the extensive health checks.
             synchronized (connectionPool) {
+                // successCount记录该连接上执行流任务的次数，为零说明是新建立的连接
                 if (candidate.successCount == 0) {
                     return candidate;
                 }
@@ -148,6 +150,8 @@ public final class StreamAllocation {
             // Do a (potentially slow) check to confirm that the pooled connection is still good. If it
             // isn't, take it out of the pool and start again.
             if (!candidate.isHealthy(doExtensiveHealthChecks)) {
+                // 连接不可用
+                // 在该方法中会设置该Allocation对应的Connection对象的noNewStream标志位，标识这在该连接不再使用，在回收的线程中会将其回收
                 noNewStreams();
                 continue;
             }
@@ -250,6 +254,7 @@ public final class StreamAllocation {
                 route = selectedRoute;
                 refusedStreamCount = 0;
                 result = new RealConnection(connectionPool, selectedRoute);
+                // 将该StreamAllocation对象，即this 添加到Connection对象的StreamAllocation引用列表中，标识在建立新的流使用到了该连接
                 acquire(result, false);
             }
         }
@@ -263,6 +268,7 @@ public final class StreamAllocation {
         // Do TCP + TLS handshakes. This is a blocking operation.
         result.connect(connectTimeout, readTimeout, writeTimeout, pingIntervalMillis,
                 connectionRetryEnabled, call, eventListener);
+        // 新建的连接一定可用，所以将该连接移除黑名单
         routeDatabase().connected(result.route());
 
         Socket socket = null;

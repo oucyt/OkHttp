@@ -55,6 +55,8 @@ public final class CallServerInterceptor implements Interceptor {
         long sentRequestMillis = System.currentTimeMillis();
 
         realChain.eventListener().requestHeadersStart(call);
+
+        // 1. 向socket中写入请求header信息
         httpCodec.writeRequestHeaders(request);
         realChain.eventListener().requestHeadersEnd(call, request);
 
@@ -79,6 +81,7 @@ public final class CallServerInterceptor implements Interceptor {
                     // Write the request body if the "Expect: 100-continue" expectation was met.
                     realChain.eventListener().requestBodyStart(call);
                     long contentLength = request.body().contentLength();
+                    // 2. 向socket中写入请求body信息
                     CountingSink requestBodyOut =
                             new CountingSink(httpCodec.createRequestBody(request, contentLength));
                     BufferedSink bufferedRequestBody = Okio.buffer(requestBodyOut);
@@ -96,6 +99,7 @@ public final class CallServerInterceptor implements Interceptor {
         }
 
         if (!(request.body() instanceof DuplexRequestBody)) {
+            // 3. 完成网络请求的写入
             httpCodec.finishRequest();
         }
 
@@ -116,6 +120,7 @@ public final class CallServerInterceptor implements Interceptor {
         if (code == 100) {
             // server sent a 100-continue even though we did not request one.
             // try again to read the actual response
+            // 4. 读取网络响应header信息
             responseBuilder = httpCodec.readResponseHeaders(false);
 
             responseBuilder
@@ -137,6 +142,7 @@ public final class CallServerInterceptor implements Interceptor {
                     .body(Util.EMPTY_RESPONSE)
                     .build();
         } else {
+            // 5. 读取网络响应的body信息
             response = response.newBuilder()
                     .body(httpCodec.openResponseBody(response))
                     .build();

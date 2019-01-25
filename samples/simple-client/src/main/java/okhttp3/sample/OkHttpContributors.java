@@ -15,6 +15,7 @@ import okhttp3.ResponseBody;
 /**
  * 参考文章
  * okhttp源码学习笔记（二）-- 连接与连接管理 https://www.jianshu.com/p/671a123ec163
+ * 代理、网关与隧道 https://blog.csdn.net/sjailjq/article/details/82287345
  */
 public class OkHttpContributors {
     private static final String ENDPOINT = "https://api.github.com/repos/square/okhttp/contributors";

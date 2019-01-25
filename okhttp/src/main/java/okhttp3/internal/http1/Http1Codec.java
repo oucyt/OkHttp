@@ -92,7 +92,7 @@ public final class Http1Codec implements HttpCodec {
     private long headerLimit = HEADER_LIMIT;
 
     /**
-     * Received trailers. Null unless the response body uses chunked transfer-encoding and includes
+     * Received trailers. Null unless the response body uses chunked（分块） transfer-encoding and includes
      * trailers. Undefined until the end of the response body.
      */
     private Headers trailers;
@@ -108,12 +108,12 @@ public final class Http1Codec implements HttpCodec {
     @Override
     public Sink createRequestBody(Request request, long contentLength) {
         if ("chunked".equalsIgnoreCase(request.header("Transfer-Encoding"))) {
-            // Stream a request body of unknown length.
+            // Stream a request body of unknown length.分块上传
             return newChunkedSink();
         }
 
         if (contentLength != -1) {
-            // Stream a request body of a known length.
+            // Stream a request body of a known length.定长消息体
             return newFixedLengthSink(contentLength);
         }
 

@@ -18,6 +18,7 @@ package okhttp3.internal.duplex;
 import java.io.IOException;
 import java.io.InterruptedIOException;
 import javax.annotation.Nullable;
+
 import okhttp3.Call;
 import okhttp3.Callback;
 import okhttp3.MediaType;
@@ -54,69 +55,78 @@ import okio.Sink;
  * {@link okhttp3.logging.HttpLoggingInterceptor logging interceptor}.
  */
 public final class DuplexRequestBody extends RequestBody implements Callback {
-  private final Pipe pipe;
-  private final @Nullable MediaType contentType;
-  private @Nullable IOException failure;
-  private @Nullable Response response;
-  private boolean enqueued;
+    private final Pipe pipe;
+    private final @Nullable
+    MediaType contentType;
+    private @Nullable
+    IOException failure;
+    private @Nullable
+    Response response;
+    private boolean enqueued;
 
-  // TODO(jwilson/oldergod): include content-length? Callers might know it!
-  public DuplexRequestBody(@Nullable MediaType contentType, long pipeMaxBufferSize) {
-    this.pipe = new Pipe(pipeMaxBufferSize);
-    this.contentType = contentType;
-  }
-
-  public BufferedSink createSink(Call call) {
-    call.enqueue(this);
-    enqueued = true;
-    return Okio.buffer(pipe.sink());
-  }
-
-  public void foldSink(Sink requestBodyOut) throws IOException {
-    // TODO: replace with okio Pipe#fold when released
-    Thread thread = new Thread("duplex folder thingy") {
-      @Override public void run() {
-        try (BufferedSink requestBody = Okio.buffer(requestBodyOut)) {
-          requestBody.writeAll(pipe.source());
-        } catch (IOException e) {
-          e.printStackTrace(); // TODO: actual fold should fix this.
-        }
-      }
-    };
-    thread.start();
-  }
-
-  @Override public synchronized void onFailure(Call call, IOException e) {
-    if (this.failure != null || this.response != null) throw new IllegalStateException();
-    this.failure = e;
-    notifyAll();
-  }
-
-  @Override public synchronized void onResponse(Call call, Response response) {
-    if (this.failure != null || this.response != null) throw new IllegalStateException();
-    this.response = response;
-    notifyAll();
-  }
-
-  public synchronized Response awaitExecute() throws IOException {
-    if (!enqueued) throw new IllegalStateException("body isn't enqueued.");
-    try {
-      while (failure == null && response == null) {
-        wait();
-      }
-      if (failure != null) throw failure;
-      return response;
-    } catch (InterruptedException e) {
-      Thread.currentThread().interrupt(); // Retain interrupted status.
-      throw new InterruptedIOException();
+    // TODO(jwilson/oldergod): include content-length? Callers might know it!
+    public DuplexRequestBody(@Nullable MediaType contentType, long pipeMaxBufferSize) {
+        this.pipe = new Pipe(pipeMaxBufferSize);
+        this.contentType = contentType;
     }
-  }
 
-  @Override public @Nullable MediaType contentType() {
-    return contentType;
-  }
+    public BufferedSink createSink(Call call) {
+        call.enqueue(this);
+        enqueued = true;
+        return Okio.buffer(pipe.sink());
+    }
 
-  @Override public void writeTo(BufferedSink sink) {
-    throw new UnsupportedOperationException();
-  }
+    public void foldSink(Sink requestBodyOut) throws IOException {
+        // TODO: replace with okio Pipe#fold when released
+        Thread thread = new Thread("duplex folder thingy") {
+            @Override
+            public void run() {
+                try (BufferedSink requestBody = Okio.buffer(requestBodyOut)) {
+                    requestBody.writeAll(pipe.source());
+                } catch (IOException e) {
+                    e.printStackTrace(); // TODO: actual fold should fix this.
+                }
+            }
+        };
+        thread.start();
+    }
+
+    @Override
+    public synchronized void onFailure(Call call, IOException e) {
+        if (this.failure != null || this.response != null) throw new IllegalStateException();
+        this.failure = e;
+        notifyAll();
+    }
+
+    @Override
+    public synchronized void onResponse(Call call, Response response) {
+        if (this.failure != null || this.response != null) throw new IllegalStateException();
+        this.response = response;
+        notifyAll();
+    }
+
+    public synchronized Response awaitExecute() throws IOException {
+        if (!enqueued) throw new IllegalStateException("body isn't enqueued.");
+        try {
+            while (failure == null && response == null) {
+                wait();
+            }
+            if (failure != null) throw failure;
+            return response;
+        } catch (InterruptedException e) {
+            Thread.currentThread().interrupt(); // Retain interrupted status.
+            throw new InterruptedIOException();
+        }
+    }
+
+    @Override
+    public @Nullable
+    MediaType contentType() {
+        return contentType;
+    }
+
+    @Override
+    public void writeTo(BufferedSink sink) {
+        throw new UnsupportedOperationException();
+    }
 }

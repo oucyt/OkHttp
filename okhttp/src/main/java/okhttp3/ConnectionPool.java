@@ -73,7 +73,7 @@ public final class ConnectionPool {
                     waitNanos -= (waitMillis * 1000000L);
                     synchronized (ConnectionPool.this) {
                         try {
-                            // 线程休眠指定时长重新唤醒
+                            // 线程等待唤醒，或者指定时长自动唤醒
                             ConnectionPool.this.wait(waitMillis, (int) waitNanos);
                         } catch (InterruptedException ignored) {
                         }

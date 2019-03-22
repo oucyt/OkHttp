@@ -287,6 +287,7 @@ public final class RealConnection extends Http2Connection.Listener implements Co
     private void establishProtocol(ConnectionSpecSelector connectionSpecSelector,
                                    int pingIntervalMillis, Call call, EventListener eventListener) throws IOException {
         if (route.address().sslSocketFactory() == null) {
+            // 如果是http,Address中的SSLSocketFactory的实例为null,也就不执行后面的TSL握手
             if (route.address().protocols().contains(Protocol.H2_PRIOR_KNOWLEDGE)) {
                 socket = rawSocket;
                 protocol = Protocol.H2_PRIOR_KNOWLEDGE;

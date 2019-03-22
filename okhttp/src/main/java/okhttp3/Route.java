@@ -22,7 +22,7 @@ import javax.annotation.Nullable;
 /**
  * The concrete route used by a connection to reach an abstract origin server. When creating a
  * connection the client has many options:
- *
+ * 一个Connection可以使用具体的路由与抽象服务器相连
  * <ul>
  *     <li><strong>HTTP proxy:</strong> a proxy server may be explicitly configured for the client.
  *         Otherwise the {@linkplain java.net.ProxySelector proxy selector} is used. It may return
